@@ -1,0 +1,157 @@
+ <!DOCTYPE html>
+ <html>
+     <head>
+         
+         <script src="http://maps.google.com/maps/api/js??v=3.exp&sensor=true"></script>
+
+         <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+         <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+         <script src="./d3_map_data.js" charset="utf-8"></script>
+         
+         <style type="text/css">
+
+             html, body, #map {
+                 width: 100%;
+                 height: 100%;
+                 margin: 0;
+                 padding: 0;
+             }
+
+             .stations, .stations svg {
+                 position: absolute;
+             }
+
+             .stations svg {
+                 width: 60px;
+                 height: 20px;
+                 padding-right: 100px;
+                 font: 10px sans-serif;
+             }
+
+             .stations circle {
+                 fill: brown;
+                 stroke: black;
+                 stroke-width: 1.5px;
+             }
+
+         </style>
+     </head>
+   <body>              
+       <div id="map"></div>
+       
+                     
+       <script>           
+           function GPSSensor(initData) {
+               //state information
+               var _div = null;
+               var _data = initData;
+               var _projection = null;
+
+               function transform(d) {
+                   var padding = 10;                   
+                   d = new google.maps.LatLng(d.Lat, d.Long);
+                   d = _projection.fromLatLngToDivPixel(d);
+                   return d3.select(this) 
+                       .style("left", (d.x - padding) + "px")
+                       .style("top", (d.y - padding) + "px");
+               }
+               
+               function transformWithEase(d) {
+                   var padding = 10;
+                   d = new google.maps.LatLng(d.Lat, d.Long);
+                   d = _projection.fromLatLngToDivPixel(d);
+                   return d3.select(this)
+                       .transition().duration(300)
+                       .style("left", (d.x - padding) + "px")
+                       .style("top", (d.y - padding) + "px");
+               }
+
+               //superclass methods for google maps
+               this.onAdd = function() {
+                   _div=d3.select(this.getPanes().overlayLayer).append("div")
+                        .attr("class", "stations");
+               };               
+                              
+               this.draw = function () {                   
+                   var padding = 10;
+                   _projection = this.getProjection();
+
+                   
+                   var marker = _div.selectAll("svg")
+                       .data(_data, function (d) { return d.Key; })
+                       .each(transform) // update existing markers
+                     .enter().append("svg:svg")
+                       .each(transform)
+                       .attr("class", "marker");
+
+                   // Add a circle.
+                   marker.append("svg:circle") 
+                       .attr("r", 4.5)
+                       .attr("cx", padding)
+                       .attr("cy", padding);
+
+                   // Add a label.
+                   marker.append("svg:text")
+                       .attr("x", padding + 7)
+                       .attr("y", padding)
+                       .attr("dy", ".31em")
+                       .text(function (d) { return d.Key; });                                      
+               };
+
+               this.onRemove = function () {
+                   _div.remove();
+               };
+
+               this.update = function (data) {                    
+                   //update internal data which drive redrawing on zoom_changed                   
+                   for (var i = 0; i < data.length; i++) {
+                       for (var j = 0; j < _data.length; j++) {
+                           if (_data[j].Key === data[i].Key) {
+                               _data[j].Lat = data[i].Lat;
+                               _data[j].Long = data[i].Long;
+                           }
+                       }
+                   }
+                   //this.draw();
+                   _div.selectAll("svg")
+                       .data(data, function (d) { return d.Key; })
+                       .each(transformWithEase);                   
+               };
+           }
+           //subclassing
+           GPSSensor.prototype = new google.maps.OverlayView();
+           
+
+
+           // Create the Google Map
+           var map = new google.maps.Map(d3.select("#map").node(), {
+               zoom: 13,
+               center: new google.maps.LatLng(-33.690126, 150.924187),
+               mapTypeId: google.maps.MapTypeId.ROADMAP
+           });
+           
+           var sensorData = [
+               sensor1Data[0],
+               sensor2Data[0]
+           ];
+           var sensorLayer = new GPSSensor(sensorData);
+           sensorLayer.setMap(map);
+           
+
+           //simulate position update by receiving positions at random interval
+           var d1Cnt = 1, d2Cnt = 1;
+           (function loop() {
+               var randTimeout = Math.round(Math.random() * (3000 - 500)) + 500;
+               setTimeout(function () {
+                   var whichSensor = Math.floor(Math.random() * 2);
+                   if (whichSensor==0 && d1Cnt < sensor1Data.length)
+                       sensorLayer.update([sensor1Data[d1Cnt++]]);
+                   else if (whichSensor==1 && d2Cnt < sensor2Data.length)
+                       sensorLayer.update([sensor2Data[d2Cnt++]]);
+                   loop();
+               }, randTimeout);
+           }());           
+
+       </script>
+   </body>
+ </html>
