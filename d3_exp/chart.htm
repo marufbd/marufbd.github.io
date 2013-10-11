@@ -1,0 +1,57 @@
+﻿<!DOCTYPE HTML>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>Log Chart</title>        
+
+		<script src="./js/jquery.min.js"></script>
+		<script src="./js/require.js"></script>
+        
+		<style>
+		    body { font: 12px Arial;}
+
+		    path { 
+		        stroke: steelblue;
+		        stroke-width: 2;
+		        fill: none;
+		    }
+
+		    .axis path,
+		    .axis line {
+		        fill: none;
+		        stroke: grey;
+		        stroke-width: 1;
+		        shape-rendering: crispEdges;
+		    }
+		</style>
+
+		<script type="text/javascript">
+		    "use strict";
+
+		    $(function () {
+
+		        requirejs.config({
+		            "baseUrl": "./js",
+		            "paths": { "app": "./app" }
+		        });
+
+
+		        require(['app/d3.chart'], function (d3Chart) {
+		            var minTime = _.chain(speedData).pluck('DateTime').min().value();
+		            var maxTime = _.chain(speedData).pluck('DateTime').max().value();
+		            
+		            d3Chart.init({ container: '#container', timeRange: [minTime, maxTime] });
+		            d3Chart.renderLogGraph({ id: 'Speed', name: 'Speed', dataId: 512, yVal: ['Value'], data: speedData });
+		            d3Chart.renderLogGraph({ id: 'RPM', name: 'RPM', dataId: 513, yVal: ['Value'], data: rpmData });
+		        });
+
+		    });
+
+		</script>
+	</head>
+	<body>
+	    <script src="./js/data/chartdata.js"></script>
+
+	    <!--<div id="container" style="height: 400px; min-width: 500px"></div>-->
+	</body>
+</html>
