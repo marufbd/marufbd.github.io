@@ -15,7 +15,7 @@
 		        stroke-width: 2;
 		        fill: none;
 		    }
-
+            
 		    .axis path,
 		    .axis line {
 		        fill: none;
@@ -41,8 +41,18 @@
 		            var maxTime = _.chain(speedData).pluck('DateTime').max().value();
 		            
 		            d3Chart.init({ container: '#container', timeRange: [minTime, maxTime] });
-		            d3Chart.renderLogGraph({ id: 'Speed', name: 'Speed', dataId: 512, yVal: ['Value'], data: speedData });
-		            d3Chart.renderLogGraph({ id: 'RPM', name: 'RPM', dataId: 513, yVal: ['Value'], data: rpmData });
+		            //d3Chart.renderLogGraph({ id: 'Speed', name: 'Speed', dataId: 512, yVal: ['Value'], data: speedData });
+		            //d3Chart.renderLogGraph({ id: 'RPM', name: 'RPM', dataId: 513, yVal: ['Value'], data: rpmData });
+
+		            d3Chart.addGraph({ id: 'Speed', name: 'Speed', dataId: 512, yVal: ['Value'], data: speedData });
+		            d3Chart.addGraph({ id: 'RPM', name: 'RPM', dataId: 513, yVal: ['Value'], data: rpmData });
+
+
+		            setTimeout(function () {
+		                //d3Chart.removeGraph('Speed');
+		                d3Chart.reorderGraph('Speed', 'down');
+		            }, 5000);
+		            //d3Chart.render();
 		        });
 
 		    });
