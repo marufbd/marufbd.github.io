@@ -1,0 +1,69 @@
+﻿<!DOCTYPE HTML>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>Log Chart</title>        
+
+		<script src="./js/jquery.min.js"></script>
+		<script src="./js/require.js"></script>
+        
+		<style>
+		    body { font: 12px Arial;}
+
+		    path { 
+		        stroke: steelblue;
+		        stroke-width: 2;
+		        fill: none;
+		    }
+            
+		    .axis path,
+		    .axis line {
+		        fill: none;
+		        stroke: grey;
+		        stroke-width: 1;
+		        shape-rendering: crispEdges;
+		    }
+		</style>
+
+		<script type="text/javascript">
+		    "use strict";
+
+		    $(function () {
+
+		        requirejs.config({
+		            "baseUrl": "./js",
+		            "paths": { "app": "./app" }
+		        });
+
+
+		        require(['app/d3.chart'], function (d3Chart) {
+		            d3Chart.init({ container: '#container' });
+		            d3Chart.addGraph({ id: 'Speed', type:'log', name: 'Speed', dataId: 512, yVal: ['Value'], data: speedData });
+		            d3Chart.addGraph({ id: 'RPM', type:'log', name: 'RPM', dataId: 513, yVal: ['Value'], data: rpmData });
+		            d3Chart.addGraph({ id: 'Accel', type: 'log', name: 'Accel', dataId: 522, yVal: ['X', 'Y', 'Z'], data: accelData });
+		            
+		            //d3Chart.addGraph({ id: 'DI', type: 'di', name: 'Digital Input', dataId: 522, data: diData });
+
+		            setTimeout(function () {	
+		                d3Chart.reorderGraph('Accel', 'up');
+		                
+		                window.setTimeout(function () {
+		                    d3Chart.removeGraph('RPM');
+		                }, 2000);
+		                
+		            }, 3000);
+
+
+		            //d3Chart.render();
+		        });
+
+		    });
+
+		</script>
+	</head>
+	<body>
+	    <script src="./js/data/chartdata_test.js"></script>
+
+	    <!--<div id="container" style="height: 400px; min-width: 500px"></div>-->
+	</body>
+</html>
