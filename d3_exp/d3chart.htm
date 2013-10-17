@@ -74,5 +74,17 @@
 	    <script src="./js/data/chartdata_test.js"></script>
 
 	    <div id="container"></div>
+        
+        <h2>Shows How we can roll our own charting component for very specific needs.</h2>
+	    <p style="font-size: 11pt">
+	        Here the requirement is to compare time series continuous analogue values along with some digital inputs which are coming from different channels with irregular time intervals.
+	        Look at the data format and how they are mapped with d3 for our specific needs.
+	        <ul>
+	            <li>Demonstrates how we can use d3's brush for zoom control over the shared x-axis without wasting sapce for a separate small chart for zoom control which most of chart componenet provides. </li>
+	            <li>Shows how dynamic height adjustment as we add/remove new charts</li>
+                <li>Shows how we can move charts up/down with smooth trnsitions with d3. This is one specific requirement that most chart components don't provide.</li>
+	        </ul>
+            
+	    </p>
 	</body>
 </html>
