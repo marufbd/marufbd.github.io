@@ -2,11 +2,10 @@
 <html>
 	<head>
 	    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=10" />
 		<title>Log Chart</title>        
 
-	    <script src="./js/jquery.min.js"></script>
-        \<script src="./js/d3.v3.min.js"></script>
+	    <script src="./js/jquery.min.js"></script>        
 	    <script src="./js/require.js"></script>     
         
 		<style>
@@ -26,18 +25,11 @@
 		        shape-rendering: crispEdges;
 		    }
 
-		    div.tooltip {
-		        position: absolute;
-		        text-align: center;
-		        width: 60px;
-		        height: 12px;
-		        padding: 8px;
-		        font: 10px sans-serif;
-		        background: #ddd;
-		        border: solid 1px #aaa;
-		        border-radius: 8px;
-		        pointer-events: none;
-		    }
+		    .brush .extent {
+		        stroke: #fff;
+		        fill-opacity: .125;
+		        shape-rendering: crispEdges;
+		    }		    
 		</style>
 
 		<script type="text/javascript">
@@ -54,10 +46,12 @@
 		        require(['app/d3.chart'], function (d3Chart) {
 		            d3Chart.init({ container: '#container', xDim: 'DateTime' });
 		            d3Chart.addGraph({ id: 'Speed', type:'log', name: 'Speed', dataId: 512, yVal: ['Value'], data: speedData });
-		            d3Chart.addGraph({ id: 'RPM', type:'log', name: 'RPM', dataId: 513, yVal: ['Value'], data: rpmData });
-		            d3Chart.addGraph({ id: 'Accel', type: 'log', name: 'Accel', dataId: 522, yVal: ['X', 'Y', 'Z'], data: accelData });
+		            d3Chart.addGraph({ id: 'RPM', type: 'log', name: 'RPM', dataId: 513, yVal: ['Value'], data: rpmData });
 		            
 		            d3Chart.addGraph({ id: 'DI', type: 'di', name: 'Digital Input', dataId: 522, data: diData });
+
+		            d3Chart.addGraph({ id: 'Accel', type: 'log', name: 'Accel', dataId: 522, yVal: ['X', 'Y', 'Z'], data: accelData });
+		            		            
 
 		            setTimeout(function () {	
 		                d3Chart.reorderGraph('Accel', 'up');
@@ -79,6 +73,6 @@
 	<body>
 	    <script src="./js/data/chartdata_test.js"></script>
 
-	    <div id="container" style="height: 400px; min-width: 500px"></div>
+	    <div id="container"></div>
 	</body>
 </html>
