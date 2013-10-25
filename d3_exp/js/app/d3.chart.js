@@ -26,6 +26,8 @@ define(['moment', 'd3.v3.min', 'underscore-min'], function (moment) {
 
     this.init = function (options) {
         _container = options.container;
+        containerWidth = $(_container).width();
+        width = containerWidth - margin.left - margin.right;
 
         _svgContainer = d3.select(_container)
             .append("svg")
@@ -43,12 +45,13 @@ define(['moment', 'd3.v3.min', 'underscore-min'], function (moment) {
             .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
         // set up the X Axis scale
-        _xScale = d3.time.scale().range([0, width]);        
+        _xScale = d3.time.scale().range([0, width]);
        
         var hoverLine = _chartCanvas.append('svg:line')
             .attr('class', 'hover-line')
             .attr('x1', 20).attr('x2', 20)
-            .attr('y1', 0).attr('y2', height)
+            .attr('y1', 0).attr('y2', height+20)
+            .attr('transform', 'translate(0, -20)')
             .attr('stroke-width', 1)
             .attr('stroke', 'grey')
             .attr('opacity', 1e-6);
@@ -68,14 +71,14 @@ define(['moment', 'd3.v3.min', 'underscore-min'], function (moment) {
             .text('time:');
         
 
-        _svgContainer
+        _svgContainer// mouse event not working on chart canvas
             .on('mouseover', function () {
                 var mouse = d3.mouse(this);
                 var mX = mouse[0] - margin.left, mY = mouse[1] - margin.top;
                 if (mX > 0 && mY > 0 && mX<width)
-                    hoverLine.transition().duration(500).style('opacity', 1);
+                    hoverLine.transition().duration(200).style('opacity', 1);
                 else
-                    hoverLine.transition().duration(500).style("opacity", 1e-6);
+                    hoverLine.transition().style("opacity", 1e-6);
             })
             .on('mouseout', function () {
                 hoverLine.transition().duration(500).style("opacity", 1e-6);
@@ -84,21 +87,35 @@ define(['moment', 'd3.v3.min', 'underscore-min'], function (moment) {
                 var mouse = d3.mouse(this);
                 var mX = mouse[0] - margin.left, mY = mouse[1] - margin.top;
                 if (mX > 0 && mY > 0 && mX < width) {
-                    hoverLine.attr('x1', mX).attr('x2', mX);                    
-                    var dt = moment(reverseX(mX));
-                    dt.set('ms', 0);
-                    timeLegend.text(dt.format('DD MMM HH:mm:ss.SSS'));
+                    var dt = moment(reverseX(mX)), nearestPointDiff=Infinity, actDt=null;
+                    dt.set('ms', 0);                    
                     d3.selectAll('.graph').data(_graphs, function (d) { return d.id; })
                         .each(function (d) {                            
                             var g = d3.select(this);
                             var str = '';
                             _.each(d.yVal, function (yDim, i) {
                                 var v = _.find(d.data, function(t) { return moment(t.DateTime).diff(dt, 'seconds') == 0; });
-                                if (v)
+                                if (v) {
                                     str += d.yVal.length == 1 ? v[yDim] : ((i > 0 ? ', ' : ' ') + yDim + ':' + v[yDim]);
+                                    var diff = dt.diff(v.DateTime, 'ms');
+                                    if (diff < nearestPointDiff) {
+                                        nearestPointDiff = diff;
+                                        actDt = moment(v.DateTime);
+                                    }                                        
+                                } 
                             });
                             g.select('.legend').text(d.id + ' : ' + str);
                         });
+                    //move plot line and show time to stick to nearest time where any value found                    
+                    if(nearestPointDiff!=Infinity) {
+                        //timeLegend.text(dt.format('DD MMM HH:mm:ss.SSS'));
+                        //hoverLine.attr('x1', mX).attr('x2', mX);
+                        timeLegend.text(actDt.format('DD MMM HH:mm:ss.SSS'));
+                        //console.log(nearestPointDiff);
+                        //console.log(dt.add(nearestPointDiff, 'ms').format());
+                        var moveX = _xScale(dt.add(nearestPointDiff, 'ms').valueOf());
+                        hoverLine.attr('x1', moveX).attr('x2', moveX);
+                    } 
                 }                    
             });
         
@@ -290,11 +307,11 @@ define(['moment', 'd3.v3.min', 'underscore-min'], function (moment) {
     
     function adjustChartHeight() {
         height = 0;
-        _.each(_graphs, function (t) { height += graphHeight(t); });        
+        _.each(_graphs, function (t) { height += graphHeight(t); });
         containerHeight = height + margin.top + margin.bottom;
         _svgContainer.attr('height', containerHeight);
         _svgContainer.select('#clip').select('rect').attr('height', height);
-        _chartCanvas.select('.hover-line').attr('y2', height);
+        _chartCanvas.select('.hover-line').attr('y2', height + 20);
     }
 
 
