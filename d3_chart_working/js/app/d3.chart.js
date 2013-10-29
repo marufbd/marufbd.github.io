@@ -1,4 +1,17 @@
-﻿
+﻿/**
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 define(['moment', 'd3', 'underscore'], function (moment) {
 
     var _container, _graphs = [];
@@ -8,7 +21,7 @@ define(['moment', 'd3', 'underscore'], function (moment) {
 
     //static config
     var containerWidth = 800, containerHeight = 400;
-    var margin = { top: 40, right: 50, bottom: 30, left: 50 },
+    var margin = { top: 40, right: 50, bottom: 30, left: 60 },
     width = containerWidth - margin.left - margin.right,
     height = containerHeight - margin.top - margin.bottom;
     var logChartHeight = 100, diChartHeight = 20;
@@ -66,7 +79,7 @@ define(['moment', 'd3', 'underscore'], function (moment) {
             .on('mouseover', function () {
                 var mouse = d3.mouse(this);
                 var mX = mouse[0] - margin.left, mY = mouse[1] - margin.top;
-                if (mX > 0 && mY > 0 && mX<width)
+                if (mX > 0 && mY > 0 && mX < width)
                     hoverLine.transition().duration(200).style('opacity', 1);
                 else
                     hoverLine.transition().style("opacity", 1e-6);
@@ -78,15 +91,16 @@ define(['moment', 'd3', 'underscore'], function (moment) {
                 var mouse = d3.mouse(this);
                 var mX = mouse[0] - margin.left, mY = mouse[1] - margin.top;                
                 if (mX > 0 && mY > 0 && mX < width) {
-                    var dt = moment(_xScale.invert(mX)), nearestPointDiff = Infinity, actDt = null;                    
-
-                    dt.set('ms', 0); 
+                    var dt = moment(_xScale.invert(mX)), nearestPointDiff = Infinity, actDt = null;
+                    dt.set('ms', 0);
+                    var now = moment();
                     d3.selectAll('.graph').data(_graphs, function (d) { return d.id; })
                         .each(function (d) {
                             var g = d3.select(this);
                             var str = '';
                             _.each(d.yVal, function (yDim, i) {
-                                var v = _.find(d.data, function(t) { return moment(t.DateTime).diff(dt, 'seconds') == 0; });
+                                //var v = _.find(d.data, function (t) { return moment(t.DateTime).diff(dt, 'seconds') == 0; });
+                                var v = _.findWhere(d.data, { DateTime: d.map[mX] });
                                 if (v) {
                                     str += d.yVal.length == 1 ? v[yDim] : ((i > 0 ? ', ' : ' ') + yDim + ':' + v[yDim]);
                                     var diff = dt.diff(v.DateTime, 'ms');
@@ -98,6 +112,7 @@ define(['moment', 'd3', 'underscore'], function (moment) {
                             });                            
                             g.select('.legend').attr('label', d.id + ' : ' + str);
                         });
+                    console.log('lookup took '+moment().diff(now)+' ms');
                     //move plot line to stick to nearest time where any value found , then update time and value legends
                     if(nearestPointDiff!=Infinity) { 
                         timeLegend.text(actDt.format('DD MMM HH:mm:ss.SSS'));
@@ -106,7 +121,7 @@ define(['moment', 'd3', 'underscore'], function (moment) {
                             return d3.select(this).attr('label');
                         });                        
                         var moveX = _xScale(actDt);
-                        hoverLine.attr('x1', moveX).attr('x2', moveX);                                                
+                        hoverLine.attr('x1', moveX).attr('x2', moveX);
                     } 
                 }                    
             });
@@ -141,30 +156,9 @@ define(['moment', 'd3', 'underscore'], function (moment) {
                     g.attr('id', d.id) // add y axis
                         .append('g')
                         .attr("class", "y axis")
-                        .attr('transform', 'translate(-1, 0)') // not make the vertical line disappear by clip and brush
+                        .attr('transform', 'translate(-1, 0)') // not make the vertical line disappear by clip when zoomed with brush
                         .call(yAxis);
                 } 
-
-                //setup scales  
-                //var yheight = height / _graphs.length - gap;
-                //var yheight = graphHeight(d);
-                //var y = d3.scale.linear().domain(yDomain).range([yheight, 0]);
-
-                ////setup y axis for this graph
-                //var yAxis = d3.svg.axis().scale(y).orient("left").ticks(5);
-
-                ////add or update graph
-                //if (chartConfig) {
-                //    g.select('.y.axis').transition().duration(500)  // update y-axis 
-                //        .call(yAxis);
-                //} else {
-                //    g.attr('id', d.id) // add y axis
-                //        .append('g')
-                //        .attr("class", "y axis")
-                //        .attr('transform', 'translate(-1, 0)') // not make the vertical line disappear by clip and brush
-                //        .call(yAxis);
-                //}
-
 
                 //add path for each y-Value dimension 
                 _.each(d.yVal, function (c, i) {
@@ -224,8 +218,8 @@ define(['moment', 'd3', 'underscore'], function (moment) {
                             .attr("d", valueline(data))
                             .attr('transform', 'translate(0,' + (i * txHeight) + ')');
                         g.select(".inputLabel" + channel) //update text 
-                            .transition().duration(600)
-                            .attr('transform', 'translate(-25,' + (i++ * txHeight + (yheight / 2)) + ')');
+                            .transition().duration(600)                            
+                            .attr('transform', 'translate(0,' + (i++ * txHeight + (yheight / 2)) + ')');
                     } else { // add
                         g.append("path") //add path
                             .attr('class', 'path ' + 'di_' + channel)
@@ -234,9 +228,10 @@ define(['moment', 'd3', 'underscore'], function (moment) {
                             .style('stroke', color(d.id + channel))
                             .attr('transform', 'translate(0,' + (i * txHeight) + ')');
                         g.append("svg:text")
-                            .text('Input-' + channel)
+                            .text(channel)
                             .attr('class', 'inputLabel' + channel)
-                            .attr('transform', 'translate(-25,' + (i++ * txHeight + (yheight / 2)) + ')');
+                            .attr('text-anchor', 'end')
+                            .attr('transform', 'translate(0,' + (i++ * txHeight + (yheight / 2)) + ')');
                     }                    
                 });
                 
@@ -309,12 +304,9 @@ define(['moment', 'd3', 'underscore'], function (moment) {
 
     //public methods for clients of this module
     this.addGraph = function (graph) {
-        graph.order = _graphs.length;
-        _graphs.push(graph);
-
 
         //adjust x-axis domain
-        var vals = _.chain(graph.data).pluck('DateTime').map(function(d) { return moment(d).valueOf(); }).value();
+        var vals = _.chain(graph.data).pluck('DateTime').map(function (d) { return moment(d).valueOf(); }).value();
         var min = _.min(vals);
         var max = _.max(vals);
         if (min < _xDomain[0])
@@ -322,15 +314,39 @@ define(['moment', 'd3', 'underscore'], function (moment) {
         if (max > _xDomain[1])
             _xDomain[1] = max;
         _xScale.domain(_xDomain);
+
+
+        //setup graph data
+        graph.order = _graphs.length;
+        
+        var cf = crossfilter(graph.data);
+        var dim = cf.dimension(function (d) { return moment(d.DateTime).valueOf(); });
+        var idx = 0;
+        dim.filter(function(d) { return (idx++ % 5) == 0; });
+        graph.data = dim.bottom(Infinity);
+
+        var map = {}, dates = _.map(graph.data, function (d) { return moment(d.DateTime).valueOf();});
+        _.each(d3.range(width), function(px) {
+            var dt = _xScale.invert(px);
+            var dataIndex = _.sortedIndex(dates, moment(dt).valueOf());// assuming data is sorted
+            if(dataIndex<graph.data.length)
+                map[px] = graph.data[dataIndex].DateTime;
+        });
+        graph.map = map;        
+
+        _graphs.push(graph);
+        
         
         //zoom scale, this needs to be rendered here as brush event triggers render which cannot change the brush itself
         var zoom = d3.time.scale().range([0, width]).domain(_xScale.domain());
-        var brush = d3.svg.brush().x(zoom)
+        var brush = d3.svg.brush()
+            .x(zoom)
             .on('brush', function () {
                 _xScale.domain(brush.empty() ? _xDomain : brush.extent());
                 render();
             });
-        d3.select('#xAxis').call(brush)
+        d3.select('#xAxis')
+            .call(brush)
             .selectAll('rect')
             .attr('y', -10)
             .attr('height', 20);

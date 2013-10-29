@@ -39,7 +39,15 @@
 
 		        requirejs.config({
 		            "baseUrl": "./js",
-		            "paths": { "app": "./app", 'moment':'./moment.min' }
+		            "paths": {
+		                "app": "./app",
+		                //'moment': './moment.min',
+		                //'underscore': './underscore-min',
+		                //'d3': './d3.v3.min'
+		                'moment': 'http://cdnjs.cloudflare.com/ajax/libs/moment.js/2.2.1/moment.min',
+		                'underscore': 'http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore-min',
+		                'd3': 'http://cdnjs.cloudflare.com/ajax/libs/d3/3.3.3/d3.min.js'
+		            }
 		        });
 
 
