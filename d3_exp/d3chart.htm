@@ -5,8 +5,11 @@
         <meta http-equiv="X-UA-Compatible" content="IE=10" />
 		<title>Log Chart</title>        
 
-	    <script src="./js/jquery.min.js"></script>
-	    <script src="./js/require.js"></script> 
+	    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+	    <script src="http://cdnjs.cloudflare.com/ajax/libs/require.js/2.1.9/require.min.js"></script> 
+        <script src="http://cdnjs.cloudflare.com/ajax/libs/d3/3.3.3/d3.min.js"></script>
+		
+	    <script src="./js/require.js"></script> 		
         
 		<style>
 		    body { font: 12px Arial;}
@@ -45,33 +48,31 @@
 		                //'underscore': './underscore-min',
 		                //'d3': './d3.v3.min'
 		                'moment': 'http://cdnjs.cloudflare.com/ajax/libs/moment.js/2.2.1/moment.min',
-		                'underscore': 'http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore-min',
-		                'd3': 'http://cdnjs.cloudflare.com/ajax/libs/d3/3.3.3/d3.min.js'
+		                'underscore': 'http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore-min'		                
 		            }
 		        });
 
 
 		        require(['app/d3.chart'], function (d3Chart) {
 		            d3Chart.init({ container: '#container', xDim: 'DateTime' });
-		            d3Chart.addGraph({ id: 'Speed', type:'log', name: 'Speed', dataId: 512, yVal: ['Value'], data: speedData });
-		            d3Chart.addGraph({ id: 'RPM', type: 'log', name: 'RPM', dataId: 513, yVal: ['Value'], data: rpmData });
-		            
-		            d3Chart.addGraph({ id: 'DI', type: 'di', name: 'Digital Input', dataId: 522, data: diData });
+		            d3Chart.addGraph({ id: 'Speed', type: 'horizon', name: 'Speed', yVal: ['Value'], data: speedData });
+		            d3Chart.addGraph({ id: 'RPM', type: 'analog', name: 'RPM', dataId: 513, yVal: ['Value'], data: rpmData });		            		            
 
-		            d3Chart.addGraph({ id: 'Accel', type: 'log', name: 'Accel', dataId: 522, yVal: ['X', 'Y', 'Z'], data: accelData });
-		            		            
+		            d3Chart.addGraph({ id: 'Accel', type: 'analog', name: 'Accel', dataId: 522, yVal: ['X', 'Y', 'Z'], data: accelData });
+		            
+		            d3Chart.addGraph({ id: 'DI', type: 'digital', name: 'Digital Input', dataId: 522, data: diData });
+
+		            d3Chart.render();
 
 		            setTimeout(function () {	
 		                d3Chart.reorderGraph('Accel', 'up');
-		                
-		                window.setTimeout(function () {
-		                    d3Chart.removeGraph('RPM');
-		                }, 2000);
-		                
+		            
+		                //window.setTimeout(function () {
+		                //    d3Chart.removeGraph('Speed');
+		                //}, 2000);
+
 		            }, 3000);
-
-
-		            //d3Chart.render();
+		            
 		        });
 
 		    });

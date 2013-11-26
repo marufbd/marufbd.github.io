@@ -1,5 +1,18 @@
-﻿
-define(['moment', 'd3', 'underscore'], function (moment) {
+﻿/**
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+define(['moment', 'underscore', 'app/d3.chart.analog', 'app/d3.chart.digital', 'app/d3.chart.horizon'], function (moment) {
 
     var _container, _graphs = [];
 
@@ -8,7 +21,7 @@ define(['moment', 'd3', 'underscore'], function (moment) {
 
     //static config
     var containerWidth = 800, containerHeight = 400;
-    var margin = { top: 40, right: 50, bottom: 30, left: 50 },
+    var margin = { top: 40, right: 50, bottom: 30, left: 60 },
     width = containerWidth - margin.left - margin.right,
     height = containerHeight - margin.top - margin.bottom;
     var logChartHeight = 100, diChartHeight = 20;
@@ -41,7 +54,8 @@ define(['moment', 'd3', 'underscore'], function (moment) {
         var hoverLine = _chartCanvas.append('svg:line')
             .attr('class', 'hover-line')
             .attr('x1', 20).attr('x2', 20)
-            .attr('y1', 0).attr('y2', height+20)
+            .attr('y1', 2)// prevent touching x-axis line
+            .attr('y2', height + 20)
             .attr('transform', 'translate(0, -20)')
             .attr('stroke-width', 1)
             .attr('stroke', 'grey')
@@ -58,237 +72,88 @@ define(['moment', 'd3', 'underscore'], function (moment) {
         var timeLegend = _chartCanvas.append('text')
             .attr('class', 'legend-time')
             .attr('x', width)
+            .attr('y', -5) // push to the margin area below x-axis
             .attr('text-anchor', 'end')
             .text('time:');
         
 
-        _svgContainer// mouse event not working on chart canvas
+        _svgContainer// mouse event not working on _chartCanvas
             .on('mouseover', function () {
                 var mouse = d3.mouse(this);
                 var mX = mouse[0] - margin.left, mY = mouse[1] - margin.top;
-                if (mX > 0 && mY > 0 && mX<width)
-                    hoverLine.transition().duration(200).style('opacity', 1);
+                if (mX > 0 && mY > 0 && mX < width)                    
+                    hoverLine.style('opacity', 1);                
                 else
-                    hoverLine.transition().style("opacity", 1e-6);
+                    hoverLine.style("opacity", 1e-6);
             })
             .on('mouseout', function () {
-                hoverLine.transition().duration(500).style("opacity", 1e-6);
+                hoverLine.style("opacity", 1e-6);
             })
             .on('mousemove', function () {
                 var mouse = d3.mouse(this);
-                var mX = mouse[0] - margin.left, mY = mouse[1] - margin.top;                
-                if (mX > 0 && mY > 0 && mX < width) {
-                    var dt = moment(_xScale.invert(mX)), nearestPointDiff = Infinity, actDt = null;                    
-
-                    dt.set('ms', 0); 
-                    d3.selectAll('.graph').data(_graphs, function (d) { return d.id; })
-                        .each(function (d) {
+                var mX = mouse[0] - margin.left, mY = mouse[1] - margin.top;
+                hoverLine.attr('x1', mX).attr('x2', mX);
+                if (mX > 0 && mY > 0 && mX < width) { 
+                    var dt = _xScale.invert(mX);
+                    var nearestDateVal = minDistanceDate(_.map(_graphs, function (d) { return d.map[mX] ? d.map[mX].date : null; }), dt);
+                    var graphIdswithDataAtNearestDate = _.chain(_graphs).filter(function(d) { return d.map[mX] && d.map[mX].date == nearestDateVal; }).pluck('id').value();
+                    if (nearestDateVal!=null) {
+                        var xMoment = moment(nearestDateVal);
+                        //update legend values 
+                        d3.selectAll('.graph').data(_graphs, function (d) { return d.id; }).each(function (d) {
                             var g = d3.select(this);
                             var str = '';
-                            _.each(d.yVal, function (yDim, i) {
-                                var v = _.find(d.data, function(t) { return moment(t.DateTime).diff(dt, 'seconds') == 0; });
-                                if (v) {
+                            //var v = _.findWhere(d.data, { DateTime: nearestDateVal });                            
+                            if (graphIdswithDataAtNearestDate.indexOf(d.id) >= 0) {
+                                var v = d.data[d.map[mX].idx];
+                                _.each(d.yVal, function (yDim, i) {
                                     str += d.yVal.length == 1 ? v[yDim] : ((i > 0 ? ', ' : ' ') + yDim + ':' + v[yDim]);
-                                    var diff = dt.diff(v.DateTime, 'ms');
-                                    if (diff < nearestPointDiff) {
-                                        nearestPointDiff = diff;
-                                        actDt = moment(v.DateTime);
-                                    }
-                                } 
-                            });                            
-                            g.select('.legend').attr('label', d.id + ' : ' + str);
+                                });
+                            }                            
+                            g.select('.legend').text(d.id + ' : ' + str);
                         });
-                    //move plot line to stick to nearest time where any value found , then update time and value legends
-                    if(nearestPointDiff!=Infinity) { 
-                        timeLegend.text(actDt.format('DD MMM HH:mm:ss.SSS'));
-
-                        d3.selectAll('.graph').selectAll('.legend').text(function(d) {
-                            return d3.select(this).attr('label');
-                        });                        
-                        var moveX = _xScale(actDt);
-                        hoverLine.attr('x1', moveX).attr('x2', moveX);                                                
-                    } 
-                }                    
+                        //move plot line to stick to nearest time where any value found , then update time and value legends                    
+                        timeLegend.text(xMoment.format('DD MMM HH:mm:ss.SSS'));
+                        var moveX = _xScale(xMoment);
+                        hoverLine.attr('x1', moveX).attr('x2', moveX);
+                    }                    
+                } 
             });
         
     };
     
-    //rendering with d3
-    function render() {
-        
-        function renderTimeSeries(selection) {  
-            selection.each(function(d) {
-                var g = d3.select(this);
-                var chartConfig = this.__chart__;
-
-                if (chartConfig) {
-                    var yDomain = chartConfig.yDomain;
-                    var y = chartConfig.y;
-                } 
-                else {
-                    var minY = _.min(d.data, function (v) {
-                        return _.chain(d.yVal).map(function (c) { return v[c]; }).min().value();
-                    });
-                    var maxY = _.max(d.data, function (v) {
-                        return _.chain(d.yVal).map(function (c) { return v[c]; }).max().value();
-                    });
-                    minY = _.chain(d.yVal).map(function (c) { return minY[c]; }).min().value();
-                    maxY = _.chain(d.yVal).map(function (c) { return maxY[c]; }).max().value();
-                    yDomain = [minY, maxY];
-
-                    y = d3.scale.linear().domain(yDomain).range([logChartHeight - gap, 0]);
-                    var yAxis = d3.svg.axis().scale(y).orient("left").ticks(5);
-                    g.attr('id', d.id) // add y axis
-                        .append('g')
-                        .attr("class", "y axis")
-                        .attr('transform', 'translate(-1, 0)') // not make the vertical line disappear by clip and brush
-                        .call(yAxis);
-                } 
-
-                //setup scales  
-                //var yheight = height / _graphs.length - gap;
-                //var yheight = graphHeight(d);
-                //var y = d3.scale.linear().domain(yDomain).range([yheight, 0]);
-
-                ////setup y axis for this graph
-                //var yAxis = d3.svg.axis().scale(y).orient("left").ticks(5);
-
-                ////add or update graph
-                //if (chartConfig) {
-                //    g.select('.y.axis').transition().duration(500)  // update y-axis 
-                //        .call(yAxis);
-                //} else {
-                //    g.attr('id', d.id) // add y axis
-                //        .append('g')
-                //        .attr("class", "y axis")
-                //        .attr('transform', 'translate(-1, 0)') // not make the vertical line disappear by clip and brush
-                //        .call(yAxis);
-                //}
-
-
-                //add path for each y-Value dimension 
-                _.each(d.yVal, function (c, i) {
-                    //setup line function
-                    var valueline = d3.svg.line()
-                        .interpolate('basis')
-                        .x(function (a) { return _xScale(moment(a.DateTime).toDate()); })
-                        .y(function (a) { return y(a[c]); });
-
-                    if (chartConfig) {
-                        g.select(".path." + c).transition().duration(1000) //update path
-                            .attr("d", valueline(d.data));
-                    } else {
-                        g.append("path") //add path 
-                            .attr('class', 'path ' + c)
-                            .attr("d", valueline(d.data))
-                            .attr("clip-path", "url(#clip)")
-                            .style('stroke', color(d.id + i));
-                        //add legend
-                        g.append('text').text(d.id)
-                            .attr('class', 'legend')
-                            .attr('x', 10).attr('y', 10);
-                    }
-                });
-
-
-                //stash chart settings for update
-                this.__chart__ = { yDomain: yDomain, y: y };
-            });
+    //select and generate a chart plugin to render
+    function selectChart(d) {
+        if (d.type == 'analog') {
+            var chart = d3.analog().height(logChartHeight).gap(gap).color(color);
         }
-        function renderDigitalSeries(selection) {
-            selection.each(function (d) {
-                var g = d3.select(this);
-
-                var chartConfig = this.__chart__;
-
-                var diGroups = _.groupBy(d.data, 'Channel');
-                //setup scales 
-                var gh = graphHeight(d);
-                //var graphHeight = (height / _graphs.length) - gap;
-                var yheight = gh / _.keys(diGroups).length - 5; 
-                var y = d3.scale.linear().domain([0, 1]).range([yheight, 0]);
-                var txHeight = gh / _.keys(diGroups).length;
-
-                //setup line function
-                var valueline = d3.svg.line()
-                    .interpolate('step-after')
-                    .x(function (d) { return _xScale(moment(d.DateTime).toDate()); })
-                    .y(function (d) { return y(d.State ? 1 : 0); });
-
-                //add/update graph for each channel 
-                var i = 0;
-                _.each(diGroups, function (data, channel) {
-                    if(chartConfig) {// update
-                        g.select(".path." + 'di_' + channel) //update path
-                            .transition().duration(600)
-                            .attr("d", valueline(data))
-                            .attr('transform', 'translate(0,' + (i * txHeight) + ')');
-                        g.select(".inputLabel" + channel) //update text 
-                            .transition().duration(600)
-                            .attr('transform', 'translate(-25,' + (i++ * txHeight + (yheight / 2)) + ')');
-                    } else { // add
-                        g.append("path") //add path
-                            .attr('class', 'path ' + 'di_' + channel)
-                            .attr("d", valueline(data))
-                            .attr("clip-path", "url(#clip)")
-                            .style('stroke', color(d.id + channel))
-                            .attr('transform', 'translate(0,' + (i * txHeight) + ')');
-                        g.append("svg:text")
-                            .text('Input-' + channel)
-                            .attr('class', 'inputLabel' + channel)
-                            .attr('transform', 'translate(-25,' + (i++ * txHeight + (yheight / 2)) + ')');
-                    }                    
-                });
-                
-
-                this.__chart__ = { update: true };
-            });
+        else if (d.type == 'digital') {
+            chart = d3.digital().height(graphHeight(d)).color(color)
+                .y(function (t) { return t.State ? 1 : 0; });// 0/1 generator as y function
+        }
+        if (d.type == 'horizon') {
+            var mean = d.data.map(function (t) { return t.Value; }).reduce(function (p, v) { return p + v; }, 0) / d.data.length;
+            chart = d3.horizon()
+                .width(width)
+                .height(logChartHeight)
+                .gap(gap)
+                .y(function (t) { return t.Value - mean; })
+                .bands(3)
+                .mode("offset");
+        }
+        
+        if(chart) {
+            //config common features
+            chart.timeScale(_xScale).x(function (t) { return moment(t.DateTime).toDate(); });
         }        
 
-        //data-bind
-        var graphs = _chartCanvas.selectAll('.graph')
-            .data(_graphs, function (d) { return d.id; });
-
-        //x-axis
-        var xAxis = d3.svg.axis().scale(_xScale).orient("top").ticks(5);
-        d3.select('.x.axis').call(xAxis);
-
-        //remove graph
-        graphs.exit().remove();
-
-        //update existing graphs 
-        graphs.each(function (d) {
-            var g = d3.select(this);
-            //position graph                       
-            var tx = 0;
-            _.chain(_graphs).filter(function (t) { return t.order < d.order; }).each(function (t) { tx += graphHeight(t); });            
-            g.transition().duration(700).attr('transform', function(d) { return 'translate(0, ' + tx + ')'; });
-            d.type == 'log' ? renderTimeSeries(g) : renderDigitalSeries(g);
-        });
-
-        //add new graphs        
-        var newGraphs = graphs
-            .enter()
-            .append('g')
-            .attr('class', 'graph')
-            .attr('transform', function (d) {
-                var tx = 0;
-                _.chain(_graphs).filter(function(t) { return t.order < d.order; }).each(function(t) { tx += graphHeight(t); });                
-                return 'translate(0, ' + tx + ')';
-            });
-        //newGraphs.append('g') //arrow-up
-        //    .attr('width', 30)
-        //    .attr('height', 30)
-        //    .append('polygon') 
-        //    .attr('points', '100,600 100,-200  500,200 500,-100  0,-600  -500,-100 -500,200 -100,-200 -100,600');
-        newGraphs.each(function (d) { d.type == 'log' ? renderTimeSeries(d3.select(this)) : renderDigitalSeries(d3.select(this)); });
+        return chart;
     }
 
-
     function graphHeight(d) {
-        if (d.type == 'log')
+        if (d.type == 'analog')
             return logChartHeight;
-        else if (d.type == 'di') {
+        else if (d.type == 'digital') {
             //calculate height
             var cnt = _.uniq(d.data, false, function (t) { return t.Channel; }).length;
             return diChartHeight * cnt;
@@ -302,42 +167,120 @@ define(['moment', 'd3', 'underscore'], function (moment) {
         _.each(_graphs, function (t) { height += graphHeight(t); });
         containerHeight = height + margin.top + margin.bottom;
         _svgContainer.attr('height', containerHeight);
+        $('.loader').height(containerHeight);
         _svgContainer.select('#clip').select('rect').attr('height', height);
         _chartCanvas.select('.hover-line').attr('y2', height + 20);
     }
 
+    //returns a date from dates array which is nearest from dt
+    function minDistanceDate(dates, dt) {
+        var result = null, distance = Infinity, dtVal=moment(dt).valueOf();
+        _.each(dates, function(d) {
+            var m = moment(d).valueOf();
+            if (distance > Math.abs(m - dtVal)) {
+                distance = Math.abs(m - dtVal);
+                result = d;
+            }                
+        });
+        return result;
+    }
+
+
+    //long running, should be non-blocking as user zooms
+    function zoom(callback) {        
+        //artificially spawns background task
+        setTimeout(function() {
+            _.each(_graphs, function (g) {
+                g.map = getLookupMap(g, _xScale);
+            });
+            callback();
+        }, 30);
+    }
+
+    //generate hashmap for fast lookup from plotline position
+    function getLookupMap(graph, xScale) {
+        
+        //hashmap for fast lookup with mousemove (plotline)
+        var map = [];
+        var startIndex = _.sortedIndex(graph.data, xScale.domain()[0], function (v) { return moment(v).valueOf(); });
+        var endIndex = _.sortedIndex(graph.data, xScale.domain()[1], function (v) { return moment(v).valueOf(); });
+        var data = _.chain(graph.data).rest(startIndex).initial(endIndex - startIndex).value();
+        
+        var dates = _.map(data, function (d) { return moment(d.DateTime).valueOf(); });
+        var cursorIndex = 0;// for skipping records on subsequent search
+        
+        _.each(d3.range(width), function (px) {
+            var dt = xScale.invert(px);
+            var dataIndex = cursorIndex+_.sortedIndex(_.rest(dates, cursorIndex), dt.valueOf());// assuming data is sorted
+            if (dataIndex < data.length) {
+                if (dataIndex > 0) {
+                    var left = moment(data[dataIndex - 1].DateTime), right = moment(data[dataIndex].DateTime);
+                    if (moment(dt).diff(left) < right.diff(dt)) // if left is nearer
+                        dataIndex = dataIndex - 1;
+                }
+                map.push({ date: data[dataIndex].DateTime, idx:dataIndex });
+                //map[px] = data[dataIndex].DateTime;
+            }                
+            cursorIndex = dataIndex;
+        });
+        
+        
+        return map;
+    }
+
+
 
     //public methods for clients of this module
-    this.addGraph = function (graph) {
-        graph.order = _graphs.length;
-        _graphs.push(graph);
-
-
+    this.addGraph = function (graph) {        
         //adjust x-axis domain
-        var vals = _.chain(graph.data).pluck('DateTime').map(function(d) { return moment(d).valueOf(); }).value();
-        var min = _.min(vals);
-        var max = _.max(vals);
-        if (min < _xDomain[0])
+        var dates = _.map(graph.data, function (d) { return moment(d.DateTime).valueOf(); });
+        var min = dates[0], max = dates[dates.length - 1], streched = false; // assuming data is sorted        
+        if (min < _xDomain[0]) {
             _xDomain[0] = min;
-        if (max > _xDomain[1])
+            streched = true;
+        }
+        if (max > _xDomain[1]) {
             _xDomain[1] = max;
-        _xScale.domain(_xDomain);
+            streched = true;
+        }
+        if (streched) {
+            _xScale.domain(_xDomain); 
+
+            //hashmap for fast lookup with plotline
+            //calculate all graphs hashmaps as x-scale changed for new graph data
+            _.each(_graphs, function (g) {
+                g.map = getLookupMap(g, _xScale);
+            });
+        }
+
+        //setup graph data
+        graph.order = _graphs.length;        
+
+        graph.map = getLookupMap(graph, _xScale);
+        _graphs.push(graph);        
+        
         
         //zoom scale, this needs to be rendered here as brush event triggers render which cannot change the brush itself
-        var zoom = d3.time.scale().range([0, width]).domain(_xScale.domain());
-        var brush = d3.svg.brush().x(zoom)
-            .on('brush', function () {
+        var zoomScale = d3.time.scale().range([0, width]).domain(_xScale.domain());
+        var brush = d3.svg.brush()
+            .x(zoomScale)
+            .on('brushend', function () { 
                 _xScale.domain(brush.empty() ? _xDomain : brush.extent());
-                render();
+
+                //generate lookup maps for graphs
+                $('.loader').show();
+                zoom(function () { render(); $('.loader').hide(); });
             });
-        d3.select('#xAxis').call(brush)
+        d3.select('#xAxis')
+            .call(brush)
             .selectAll('rect')
             .attr('y', -10)
             .attr('height', 20);
 
         adjustChartHeight();
 
-        render();
+        if(graph.render)
+            render();
     };
 
     this.removeGraph = function (graphId) {
@@ -365,6 +308,45 @@ define(['moment', 'd3', 'underscore'], function (moment) {
         }
 
         render();
+    };
+    
+    //rendering with d3
+    this.render = function () {
+
+        //data-bind
+        var graphs = _chartCanvas.selectAll('.graph')
+            .data(_graphs, function (d) { return d.id; });
+
+        //x-axis
+        var xAxis = d3.svg.axis().scale(_xScale).orient("top").ticks(5);
+        d3.select('.x.axis').call(xAxis);
+
+        //remove graph
+        graphs.exit().remove();
+
+        //update existing graphs 
+        graphs.each(function (d) {
+            var g = d3.select(this);
+            //position graph
+            var tx = 0;
+            _.chain(_graphs).filter(function (t) { return t.order < d.order; }).each(function (t) { tx += graphHeight(t); });
+            g.transition().duration(700).attr('transform', function (d) { return 'translate(0, ' + tx + ')'; });
+
+            g.call(selectChart(d));
+        });
+
+        //add new graphs 
+        var newGraphs = graphs
+            .enter()
+            //.append('g')
+            .insert('g', '.hover-line') //make hover-line on top
+            .attr('class', 'graph')
+            .attr('transform', function (d) {
+                var tx = 0;
+                _.chain(_graphs).filter(function (t) { return t.order < d.order; }).each(function (t) { tx += graphHeight(t); });
+                return 'translate(0, ' + tx + ')';
+            });
+        newGraphs.each(function (d) { d3.select(this).call(selectChart(d)); });
     };
 
     return this;
