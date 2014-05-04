@@ -573,6 +573,7 @@ onload = function() {
         'url': url
       });
 
+	  console.log('CHECKING CORS ........');
       if( manifestCredentials ) { 
         mediaHost.updateManifestRequestInfo = function(requestInfo) {
           // example of setting CORS withCredentials
