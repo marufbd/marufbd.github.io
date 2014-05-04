@@ -572,8 +572,7 @@ onload = function() {
         'mediaElement': mediaElement,
         'url': url
       });
-
-	  console.log('CHECKING CORS ........');
+	  
       if( manifestCredentials ) { 
         mediaHost.updateManifestRequestInfo = function(requestInfo) {
           // example of setting CORS withCredentials
@@ -662,7 +661,8 @@ onload = function() {
       setDebugMessage('mediaHostState', 'success');
     }
   }
-
+	
+	console.log('SHOUT OUT CORS........');
   console.log('### Application Loaded. Starting system.');
   setDebugMessage('applicationState','Loaded. Starting up.');
 
