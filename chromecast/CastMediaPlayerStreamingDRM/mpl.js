@@ -662,7 +662,7 @@ onload = function() {
     }
   }
 	
-console.log('SHOUT OUT CORS........');
+	console.log('SHOUT OUT CORS........');
   console.log('### Application Loaded. Starting system.');
   setDebugMessage('applicationState','Loaded. Starting up.');
 
