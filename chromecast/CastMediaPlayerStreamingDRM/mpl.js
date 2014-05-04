@@ -576,15 +576,18 @@ onload = function() {
       if( manifestCredentials ) { 
         mediaHost.updateManifestRequestInfo = function(requestInfo) {
           // example of setting CORS withCredentials
-	  if (!requestInfo.url) {
+	  if (!requestInfo.url) {		
+		console.log('setting request url');
 	    requestInfo.url = url;
 	  }
+		  console.log('setting withCredentials');
           requestInfo.withCredentials = true;
         };
       } 
       if( segmentCredentials ) { 
         mediaHost.updateSegmentRequestInfo = function(requestInfo) {
           // example of setting CORS withCredentials
+		  console.log('setting withCredentials');
           requestInfo.withCredentials = true;
           // example of setting headers
           //requestInfo.headers = {};
@@ -594,6 +597,7 @@ onload = function() {
       if( licenseCredentials ) { 
         mediaHost.updateLicenseRequestInfo = function(requestInfo) {
           // example of setting CORS withCredentials
+		  console.log('setting withCredentials');
           requestInfo.withCredentials = true;
         };
       }
