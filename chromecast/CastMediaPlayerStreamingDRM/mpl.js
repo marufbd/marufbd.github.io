@@ -573,27 +573,27 @@ onload = function() {
         'url': url
       });
 	  
-      if( manifestCredentials ) { 
+      
         mediaHost.updateManifestRequestInfo = function(requestInfo) {
           // example of setting CORS withCredentials
-	  if (!requestInfo.url) {		
-		console.log('setting request url');
-	    requestInfo.url = url;
-	  }
-		  console.log('setting withCredentials');
-          requestInfo.withCredentials = true;
+		  if (!requestInfo.url) {		
+			console.log('setting request url');
+			requestInfo.url = url;
+		  }
+		  
+		  console.log('manifest: '+requestInfo.url);
+          //requestInfo.withCredentials = true;
         };
-      } 
-      if( segmentCredentials ) { 
+            
         mediaHost.updateSegmentRequestInfo = function(requestInfo) {
-          // example of setting CORS withCredentials
-		  console.log('setting withCredentials');
-          requestInfo.withCredentials = true;
+          // example of setting CORS withCredentials		  
+          //requestInfo.withCredentials = true;
+		  console.log('segement: '+requestInfo.url);
           // example of setting headers
           //requestInfo.headers = {};
           //requestInfo.headers['content-type'] = 'text/xml;charset=utf-8';
         };
-      } 
+       
       if( licenseCredentials ) { 
         mediaHost.updateLicenseRequestInfo = function(requestInfo) {
           // example of setting CORS withCredentials
