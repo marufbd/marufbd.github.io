@@ -588,8 +588,8 @@ onload = function() {
         mediaHost.updateSegmentRequestInfo = function(requestInfo) {
           // example of setting CORS withCredentials		  
           //requestInfo.withCredentials = true;
-		  var segmentFileName=requestInfo.url.replace(/^.*[\\\/]/, '');
-		  requestInfo.url="http://playertest.longtailvideo.com/adaptive/bbbfull/"+segmentFileName;
+		  //var segmentFileName=requestInfo.url.replace(/^.*[\\\/]/, '');
+		  //requestInfo.url="http://playertest.longtailvideo.com/adaptive/bbbfull/"+segmentFileName;
 		  console.log('segement: '+requestInfo.url);
           // example of setting headers
           //requestInfo.headers = {};
